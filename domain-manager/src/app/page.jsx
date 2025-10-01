@@ -37,15 +37,15 @@ export default function Home() {
 
   const statusOptions = [
     { value: "all", label: "Status: All" },
-    { value: "active", label: "Active" },
-    { value: "inactive", label: "Inactive" },
-    { value: "pending", label: "Pending" },
+    { value: true, label: "Active" },
+    { value: false, label: "Inactive" },
   ];
 
   const typeOptions = [
     { value: "all", label: "Type: All" },
-    { value: "primary", label: "Primary" },
-    { value: "secondary", label: "Secondary" },
+    { value: 1, label: "pending" },
+    { value: 2, label: "verified" },
+    { value: 3, label: "rejected" },
   ];
 
   const handleStatusChange = (selected) => {
