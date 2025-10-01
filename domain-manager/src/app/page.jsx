@@ -1,8 +1,8 @@
 "use client";
 import Table from "@/components/ui/Table";
-import Searach from "@/components/Searach";
+import SearchInput from "@/components/SearchInput";
 import CustomSelectInput from "@/components/ui/CustomSelectInput";
-import React from "react";
+import React, { useState} from "react";
 import useGetAllDomains from "@/hook/useGetAllDomains";
 import Actions from "@/components/Actions";
 import Domain_status from "@/utils/Domain_status";
@@ -10,6 +10,7 @@ import Activestatuslabel from "@/utils/Activestatuslabel";
 
 export default function Home() {
   const { data, isLoading, error } = useGetAllDomains();
+  const [searchQuery, setSearchQuery] = useState("");
 
   if (isLoading) {
     return (
@@ -19,17 +20,42 @@ export default function Home() {
     );
   }
 
-  const domainResults =
+  const allDomains =
     data?.results && Array.isArray(data.results) ? data.results : [];
+
+  const getFilteredDomains = () => {
+    if (!searchQuery) {
+      return allDomains;
+    }
+
+    const query = searchQuery.toLowerCase();
+
+    return allDomains.filter((domain) => {
+      const nameValue = domain.domain ? domain.domain.toLowerCase() : "";
+
+      let dateValue = "";
+      if (domain.createdDate !== null && domain.createdDate !== undefined) {
+        dateValue = String(domain.createdDate).toLowerCase();
+      }
+      const isMatchInName = nameValue.includes(query);
+      const isMatchInDate = dateValue.includes(query);
+
+      return isMatchInName || isMatchInDate;
+    });
+  };
+  const domainResults = getFilteredDomains();
+
+  const handleSearch = (event) => {
+    setSearchQuery(event.target.value);
+  };
 
   const T_data = domainResults.map((resultItem, index) => {
     return [
       resultItem.domain,
-      <p>{Domain_status(resultItem.status)}</p>,
+      Domain_status(resultItem.status),
       Activestatuslabel(resultItem.isActive),
-
       resultItem.createdDate,
-      <Actions key={index} id={resultItem.id} />,
+      <Actions id={resultItem.id} />,
     ];
   });
 
@@ -56,6 +82,8 @@ export default function Home() {
     console.log("Selected Type:", selected);
   };
 
+  const showNoResults = domainResults.length === 0 && searchQuery;
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-10 font-sans text-gray-900">
       <header className="flex justify-between items-center mb-6 md:mb-8">
@@ -73,7 +101,9 @@ export default function Home() {
       <main className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 overflow-x-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
           <div className="w-full sm:w-1/3">
-            <Searach
+            <SearchInput
+              onChange={handleSearch}
+              value={searchQuery}
               className="p-2 border border-gray-300 rounded-md w-full shadow-sm focus:ring-blue-500 focus:border-blue-500"
               placeholder="Search by domain..."
             />
@@ -96,13 +126,21 @@ export default function Home() {
           </div>
         </div>
 
-        <Table
-          className="w-full text-sm md:text-base border-collapse"
-          columnStyle="p-3 border-b border-gray-100 text-gray-700 whitespace-nowrap"
-          data={T_data}
-          headers={T_header}
-          headersStyle="p-3 bg-gray-50 text-gray-500 uppercase tracking-wider font-medium border-b border-gray-200 text-left"
-        />
+        {showNoResults ? (
+          <div className="text-center py-10">
+            <p className="text-lg text-gray-500 font-medium">
+              No domains found.
+            </p>
+          </div>
+        ) : (
+          <Table
+            className="w-full text-sm md:text-base border-collapse"
+            columnStyle="p-3 border-b border-gray-100 text-gray-700 whitespace-nowrap"
+            data={T_data}
+            headers={T_header}
+            headersStyle="p-3 bg-gray-50 text-gray-500 uppercase tracking-wider font-medium border-b border-gray-200 text-left"
+          />
+        )}
       </main>
     </div>
   );
