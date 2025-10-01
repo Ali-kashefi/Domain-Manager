@@ -2,15 +2,24 @@
 import Table from "@/components/ui/Table";
 import SearchInput from "@/components/SearchInput";
 import CustomSelectInput from "@/components/ui/CustomSelectInput";
-import React, { useState} from "react";
+import React, { useState } from "react";
 import useGetAllDomains from "@/hook/useGetAllDomains";
 import Actions from "@/components/Actions";
 import Domain_status from "@/utils/Domain_status";
 import Activestatuslabel from "@/utils/Activestatuslabel";
-
+import useDomainStore from "@/store/useDomainStore";
 export default function Home() {
   const { data, isLoading, error } = useGetAllDomains();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+
+  const { domains, setDomains, actions } = useDomainStore();
+
+  React.useEffect(() => {
+    if (data?.results && Array.isArray(data.results)) {
+      setDomains(data.results);
+    }
+  }, [data, setDomains]);
 
   if (isLoading) {
     return (
@@ -20,36 +29,51 @@ export default function Home() {
     );
   }
 
-  const allDomains =
-    data?.results && Array.isArray(data.results) ? data.results : [];
-
   const getFilteredDomains = () => {
-    if (!searchQuery) {
-      return allDomains;
+    let currentDomains = domains;
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase().trim();
+      currentDomains = currentDomains.filter((domain) => {
+        const nameValue = domain.domain ? domain.domain.toLowerCase() : "";
+        let dateValue = "";
+        if (domain.createdDate !== null && domain.createdDate !== undefined) {
+          dateValue = String(domain.createdDate).toLowerCase();
+        }
+        const isMatchInName = nameValue.includes(query);
+        const isMatchInDate = dateValue.includes(query);
+
+        return isMatchInName || isMatchInDate;
+      });
     }
 
-    const query = searchQuery.toLowerCase();
-
-    return allDomains.filter((domain) => {
-      const nameValue = domain.domain ? domain.domain.toLowerCase() : "";
-
-      let dateValue = "";
-      if (domain.createdDate !== null && domain.createdDate !== undefined) {
-        dateValue = String(domain.createdDate).toLowerCase();
-      }
-      const isMatchInName = nameValue.includes(query);
-      const isMatchInDate = dateValue.includes(query);
-
-      return isMatchInName || isMatchInDate;
-    });
+    return currentDomains;
   };
-  const domainResults = getFilteredDomains();
+
+  const filteredResults = getFilteredDomains();
 
   const handleSearch = (event) => {
     setSearchQuery(event.target.value);
   };
 
-  const T_data = domainResults.map((resultItem, index) => {
+  const handleStatusChange = (selected) => {
+    const statusValue = selected.value;
+    setSelectedStatus(statusValue);
+
+    if (statusValue === "all") {
+      actions.all();
+    } else if (statusValue === true) {
+      actions.active();
+    } else if (statusValue === false) {
+      actions.inactive();
+    }
+  };
+
+  const handleTypeChange = (selected) => {
+    console.log("Selected Type:", selected);
+  };
+
+  const T_data = filteredResults.map((resultItem, index) => {
     return [
       resultItem.domain,
       Domain_status(resultItem.status),
@@ -74,15 +98,9 @@ export default function Home() {
     { value: 3, label: "rejected" },
   ];
 
-  const handleStatusChange = (selected) => {
-    console.log("Selected Status:", selected);
-  };
-
-  const handleTypeChange = (selected) => {
-    console.log("Selected Type:", selected);
-  };
-
-  const showNoResults = domainResults.length === 0 && searchQuery;
+  const showNoResults =
+    filteredResults.length === 0 &&
+    (searchQuery.trim() !== "" || selectedStatus !== "all");
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-10 font-sans text-gray-900">
