@@ -12,7 +12,11 @@ export default function Home() {
   const { data, isLoading, error } = useGetAllDomains();
 
   if (isLoading) {
-    return <p>Loading...</p>;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p className="text-xl font-semibold text-gray-700">Loading...</p>
+      </div>
+    );
   }
 
   const domainResults =
